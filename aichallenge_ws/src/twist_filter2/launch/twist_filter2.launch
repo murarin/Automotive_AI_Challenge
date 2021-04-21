@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="loop_rate" default="30.0" />
+  <arg name="use_decision_maker" default="false" />
+  <arg name="lateral_accel_limit" default="5.0" />
+  <arg name="lowpass_gain_linear_x" default="0.0" />
+  <arg name="lowpass_gain_angular_z" default="0.0" />
+  <arg name="scenario" default="0" /> <!-- acc: 0  traffic light: 1 -->
+
+  <!-- rosrun waypoint_follower twist_filter -->
+  <node pkg="twist_filter2" type="twist_filter2" name="twist_filter2" output="log">
+    <param name="lateral_accel_limit" value="$(arg lateral_accel_limit)" />
+    <param name="lowpass_gain_linear_x" value="$(arg lowpass_gain_linear_x)" />
+    <param name="lowpass_gain_angular_z" value="$(arg lowpass_gain_angular_z)" />
+  </node>
+
+  <node pkg="twist_gate2" type="twist_gate2" name="twist_gate2" output="screen">
+    <param name="loop_rate" value="$(arg loop_rate)" />
+    <param name="use_decision_maker" value="$(arg use_decision_maker)" />
+    <param name="scenario" value="$(arg scenario)" />
+  </node>
+</launch>

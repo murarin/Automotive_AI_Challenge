@@ -1,0 +1,346 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- initial pose publisher -->
+    <node pkg="aichallenge_bringup" type="initial_pose_publisher_avoid.py" name="initial_pose_publisher">
+    </node>
+
+    <!-- waypoint loader -->
+    <include file="$(find waypoint_maker)/launch/waypoint_loader.launch">
+        <arg name="load_csv" default="true" />
+        <arg name="multi_lane_csv" default="$(find aichallenge_bringup)/data/mydata/waypoint_avoid.csv" />
+        <arg name="replanning_mode" default="true" />
+        <arg name="realtime_tuning_mode" default="true" />
+        <arg name="resample_mode" default="true" />
+        <arg name="resample_interval" default="1.0" />
+        <arg name="replan_curve_mode" default="true" />
+        <arg name="overwrite_vmax_mode" default="False" />
+        <arg name="replan_endpoint_mode" default="true" />
+        <arg name="velocity_max" default="100" />
+        <arg name="radius_thresh" default="60" />
+        <arg name="radius_min" default="6" />
+        <arg name="velocity_min" default="6" />
+        <arg name="accel_limit" default="0.5" />
+        <arg name="decel_limit" default="0.3" /> <!-- 0.3 -->
+        <arg name="velocity_offset" default="4" />
+        <arg name="braking_distance" default="5" />
+        <arg name="end_point_offset" default="1" />
+        <arg name="use_decision_maker" default="false" />
+    </include>
+
+
+    <!-- vision effDet detect-->
+    <include file="$(find vision_effdet_detect)/launch/vision_effDet_detect.launch">
+        <arg name="use_gpu" default="true"/>
+        <arg name="score_threshold" default="0.5"/>
+        <arg name="pretrained_model_file" default="$(find vision_effdet_detect)/data/model_best_75_lib.pt"/>
+        <arg name="camera_id" default="front_camera" />
+        <arg name="image_src" default="/image/raw" />
+    </include>
+
+
+    <!-- lidar euclidean cluster detect -->
+    <include file="$(find lidar_euclidean_cluster_detect)/launch/lidar_euclidean_cluster_detect.launch">
+        <arg name="points_node" default="/points_no_ground" /><!--CHANGE THIS TO READ WHETHER FROM VSCAN OR POINTS_RAW -->
+        <arg name="remove_ground" default="true" />
+        <arg name="downsample_cloud" default="false" /> <!-- Apply VoxelGrid Filter with the value given by "leaf_size"-->
+        <arg name="leaf_size" default="0" /><!-- Voxel Grid Filter leaf size-->
+        <arg name="cluster_size_min" default="5" /><!-- Minimum number of points to consider a cluster as valid-->
+        <arg name="cluster_size_max" default="100000" /><!-- Maximum number of points to allow inside a cluster-->
+        <arg name="sync" default="false" />
+        <arg name="use_diffnormals" default="false" />
+        <arg name="pose_estimation" default="true" />
+        <arg name="clip_min_height" default="-5" />
+        <arg name="clip_max_height" default="5" />
+
+        <arg name="keep_lanes" default="false" />
+        <arg name="keep_lane_left_distance" default="100.0" />
+        <arg name="keep_lane_right_distance" default="100.0" />
+        <arg name="cluster_merge_threshold" default="0.5" />
+        <arg name="clustering_distance" default="2" />
+
+        <arg name="use_vector_map" default="false" />
+        <arg name="wayarea_gridmap_layer" default="wayarea" />
+
+        <arg name="output_frame" default="velodyne" />
+
+        <arg name="remove_points_upto" default="0.0" />
+
+        <arg name="use_gpu" default="true" />
+
+        <arg name="use_multiple_thres" default="false"/>
+        <arg name="clustering_ranges" default="[15,30,45,60]"/><!-- Distances to segment pointcloud -->
+        <arg name="clustering_distances"
+            default="[0.5,1.1,1.6,2.1,2.6]"/><!-- Euclidean Clustering threshold distance for each segment -->
+    </include>
+
+    <!-- range vision fusion -->
+    <include file="$(find range_vision_fusion)/launch/range_vision_fusion.launch">
+        <arg name="detected_objects_range" default="/detection/lidar_detector/objects"/>
+        <arg name="detected_objects_vision" default="/detection/image_detector/objects"/>
+        <arg name="camera_info_src" default="/front_camera/camera_info"/>
+        <arg name="min_car_dimensions" default="[3,2,2]"/>
+        <arg name="min_person_dimensions" default="[1,2,1]"/>
+        <arg name="min_truck_dimensions" default="[4,2,2]"/>
+        <arg name="sync_topics" default="false"/>
+        <arg name="overlap_threshold" default="0.6"/>
+        <arg name="use_vector_map" default="false"/>
+        <arg name="namespace" default="/detection/fusion_tools"/>
+    </include>
+
+    <!-- lidar kf contour track -->
+    <!-- <include file="$(find lidar_kf_contour_track)/launch/lidar_kf_contour_track.launch">
+        <arg name="vehicle_width" default="1.85" />
+        <arg name="vehicle_length" default="4.2" />
+        <arg name="min_object_size" default="0.1" />
+        <arg name="max_object_size" default="30.0" />
+        <arg name="polygon_quarters" default="16" />
+        <arg name="polygon_resolution" default="0.5" /> -->
+
+        <!-- 0 for association only, 1 for simple kf tracking, 2 for smart contour tracker -->
+        <!-- <arg name="tracking_type" default="0" />
+
+        <arg name="max_association_distance" default="4.5" />
+        <arg name="max_association_size_diff" default="2.0" />
+
+        <arg name="max_remeber_time" default="3" />
+        <arg name="trust_counter" default="4" />
+
+        <arg name="enableSimulationMode" default="false" />
+        <arg name="enableStepByStepMode" default="false" /> -->
+
+        <!-- set 0 to disable vector map filtering  -->
+        <!-- <arg name="vector_map_filter_distance" default="2.0" />
+
+        <arg name="enableLogging" default="false" />
+    </include> -->
+
+
+    <!-- imm ukf pda track -->
+    <include file="$(find imm_ukf_pda_track)/launch/imm_ukf_pda_track_option.launch">
+        <arg name="namespace" default="/detection/object_tracker"/>
+
+        <!-- lidar euclidean からの出力にする・・？　でもデフォルトがfusion -->
+        <!-- <arg name="tracker_input_topic" default="/detection/fusion_tools/objects" /> -->
+        <arg name="tracker_input_topic" default="/detection/lidar_detector/objects" />
+
+        <arg name="tracker_output_topic" default="/detection/object_tracker/objects" />
+
+        <arg name="tracking_frame" default="/world" />
+        <arg name="gating_threshold" default="9.22" />
+        <arg name="gate_probability" default="0.99" />
+        <arg name="detection_probability" default="0.9" />
+        <arg name="life_time_threshold" default="8" />
+        <arg name="static_velocity_threshold" default="0.5" />
+        <arg name="static_num_history_threshold" default="3" />
+        <arg name="prevent_explosion_threshold" default="1000" />
+        <arg name="merge_distance_threshold" default="0.5"/>
+        <arg name="use_sukf" default="false" />
+
+        <!-- Vectormap -->
+        <arg name="use_map_info" default="true" />
+        <arg name="use_ll2" default="true"/>
+        <arg name="lane_direction_chi_threshold" default="2.71" />
+        <arg name="nearest_lane_distance_threshold" default="1.0" />
+        <arg name="map_frame" default="/map" />
+    </include>
+
+
+    <!-- naive motion predict -->
+    <include file="$(find naive_motion_predict)/launch/naive_motion_predict.launch">
+        <arg name="interval_sec" default="0.1"/>
+        <arg name="num_prediction" default="10"/>
+        <arg name="sensor_height" default="2.0"/>
+        <arg name="filter_out_close_object_threshold" default="1.5"/>
+
+        <!-- TODO デフォルトでやったほうがいいのか確認-->
+        <!-- <arg name="input_topic" default="/detection/objects"/> -->
+        <arg name="input_topic" default="/detection/object_tracker/objects"/>
+
+    </include>
+
+
+    <!-- lane rule -->
+    <node pkg="rostopic" type="rostopic" name="arbitrary_name3" args="pub /config/lane_rule autoware_config_msgs/ConfigLaneRule
+        '{ header: auto,
+        acceleration: 1.0,
+        stopline_search_radius: 1.0,
+        number_of_zeros_ahead: 5,
+        number_of_zeros_behind: 5,
+        number_of_smoothing_count: 0 }' " output="screen">
+    </node>
+
+    <include file="$(find lane_planner)/launch/lane_rule_option.launch">
+        <arg name="use_ll2" default="true" />
+    </include>
+
+
+    <!-- lane stop-->
+    <node pkg="rostopic" type="rostopic" name="arbitrary_name4" args="pub /config/lane_stop autoware_config_msgs/ConfigLaneStop
+        '{ header: auto,
+        manual_detection: False }' " output="screen">
+    </node>
+    <node pkg="lane_planner" type="lane_stop" name="lane_stop"/>
+
+
+    <!-- lane select -->
+    <node pkg="rostopic" type="rostopic" name="arbitrary_name5" args="pub /config/lane_select autoware_config_msgs/ConfigLaneSelect
+        '{ header: auto,
+        distance_threshold_neighbor_lanes: 5.0,
+        lane_change_interval: 10.0,
+        lane_change_target_ratio: 5.0,
+        lane_change_target_minimum: 10.0,
+        vector_length_hermite_curve: 10.0 }' " output="screen">
+    </node>
+
+    <include file="$(find lane_planner)/launch/lane_select.launch">
+        <arg name="search_closest_waypoint_minimum_dt" default="5" doc="Minimum number of lookahead waypoints when searching closest_waypoint"/>
+    </include>
+
+
+    <!-- velocity set -->
+    <include file="$(find waypoint_planner)/launch/velocity_set_option.launch">
+        <arg name="use_crosswalk_detection" default="true" />
+        <arg name="points_topic" default="points_no_ground" />
+        <arg name="velocity_offset" default="1.2" />
+        <arg name="decelerate_vel_min" default="1.3" />
+        <arg name="remove_points_upto" default="2.3" />
+        <arg name="enable_multiple_crosswalk_detection" default="false" />
+        <arg name="stop_distance_obstacle" default="10.0" />
+        <arg name="stop_distance_stopline" default="5.0" />
+        <arg name="detection_range" default="1.3" />
+        <arg name="points_threshold" default="10" />
+        <arg name="detection_height_top" default="0.2" />
+        <arg name="detection_height_bottom" default="-1.7" />
+        <arg name="deceleration_obstacle" default="0.8" />
+        <arg name="deceleration_stopline" default="0.6" />
+        <arg name="velocity_change_limit" default="9.972" />
+        <arg name="deceleration_range" default="0" />
+        <arg name="temporal_waypoints_size" default="100" />
+        <arg name="use_ll2" default="true" />
+    </include>
+    <!-- <include file="$(find waypoint_planner)/launch/velocity_set_option.launch">
+        <arg name="use_ll2" default="true" />
+    </include> -->
+
+
+
+    <!-- astar avoid -->
+    <include file="$(find waypoint_planner)/launch/astar_avoid.launch">
+        <!-- Relay behavior configurations -->
+        <arg name="safety_waypoints_size" default="100" />
+        <arg name="update_rate" default="10" />
+
+        <!-- Avoidance behavior configurations -->
+        <arg name="costmap_topic" default="semantics/costmap_generator/occupancy_grid" />
+        <arg name="enable_avoidance" default="true" />
+        <arg name="avoid_waypoints_velocity" default="10.0" />
+        <arg name="avoid_start_velocity" default="3.0" />
+        <arg name="replan_interval" default="2.0" />
+        <arg name="search_waypoints_size" default="50" />
+        <arg name="search_waypoints_delta" default="2" />
+        <arg name="closest_search_size" default="30" />
+
+        <!-- A* search configurations -->
+        <arg name="use_back" default="false" />
+        <arg name="use_potential_heuristic" default="true" />
+        <arg name="use_wavefront_heuristic" default="false" />
+        <arg name="time_limit" default="1000.0" />
+        <arg name="robot_length" default="7.5" /> <!-- 4.5 -->
+        <arg name="robot_width" default="2.0" /> <!-- 1.75 -->
+        <arg name="robot_base2back" default="1.0" />
+        <arg name="minimum_turning_radius" default= "2.0" /> <!-- 6.0 -->
+        <arg name="theta_size" default="48" />
+        <arg name="curve_weight" default="10.0" /> <!-- 1.2 -->
+        <arg name="reverse_weight" default="2.00" />
+        <arg name="lateral_goal_range" default="0.5" />
+        <arg name="longitudinal_goal_range" default="2.0" />
+        <arg name="angle_goal_range" default="6.0" />
+        <arg name="obstacle_threshold" default="100" />
+        <arg name="potential_weight" default="10.0" />
+        <arg name="distance_heuristic_weight" default="1.0" />
+    </include>
+    <!-- <include file="$(find waypoint_planner)/launch/astar_avoid.launch"/> -->
+
+
+    <!-- pure pursuit -->
+    <include file="$(find pure_pursuit)/launch/pure_pursuit.launch">
+        <arg name="is_linear_interpolation" default="true"/>
+        <arg name="publishes_for_steering_robot" default="true"/>
+        <arg name="add_virtual_end_waypoints" default="false"/>
+        <arg name="const_lookahead_distance" default="2.0"/>
+        <arg name="const_velocity" default="5.0"/>
+        <arg name="lookahead_ratio" default="1.0"/>
+        <arg name="minimum_lookahead_distance" default="3.0"/>
+
+        <!-- 0 = waypoints, 1 = provided constant velocity -->
+        <arg name="velocity_source" default="0"/>
+    </include>
+
+
+    <!-- twist filter -->
+    <include file="$(find twist_filter2)/launch/twist_filter2.launch">
+        <arg name="loop_rate" default="30.0" />
+        <arg name="use_decision_maker" default="false" />
+        <arg name="lateral_accel_limit" default="5.0" />
+        <arg name="lowpass_gain_linear_x" default="0.0" />
+        <arg name="lowpass_gain_angular_z" default="0.0" />
+        <arg name="scenario" default="2" /> <!-- acc: 0  traffic light: 1 -->
+    </include>
+
+
+    <!-- <remap from="/prediction/motion_predictor/objects"  to="/prediction/motion_predictor/objects" />
+    <remap from="/points_no_ground"                     to="/points_no_ground" />
+
+    <node pkg="costmap_generator" type="costmap_generator_lanelet2" name="costmap_generator_lanelet2" output="screen">
+
+        <param name="lidar_frame" value="velodyne" />
+        <param name="map_frame" value="map" />
+        <param name="grid_min_value" value="0.0" />
+        <param name="grid_max_value" value="1.0" />
+        <param name="grid_resolution" value="0.2" />
+        <param name="grid_length_x" value="50" />
+        <param name="grid_length_y" value="30" />
+        <param name="grid_position_x" value="20" />
+        <param name="grid_position_y" value="0" />
+        <param name="maximum_lidar_height_thres" value="0.3" />
+        <param name="minimum_lidar_height_thres" value="-2.2" />
+        <param name="expand_polygon_size" value="1.0" />
+        <param name="size_of_expansion_kernel" value="9" />
+        <param name="use_objects_box" value="false" />
+        <param name="use_objects_convex_hull" value="true" />
+        <param name="use_points" value="true" />
+        <param name="use_wayarea" value="true" />
+
+    </node> -->
+
+
+    <!-- costmap generator -->
+    <include file="$(find costmap_generator)/launch/costmap_generator_option.launch">
+        <!-- node parameters -->
+        <arg name="lidar_frame" default="/velodyne" />
+        <arg name="map_frame" default="/map" />
+        <arg name="grid_min_value" default="0.0" />
+        <arg name="grid_max_value" default="1.0" />
+        <arg name="grid_resolution" default="0.2" />
+        <arg name="grid_length_x" default="50" />
+        <arg name="grid_length_y" default="30" />
+        <arg name="grid_position_x" default="20" />
+        <arg name="grid_position_y" default="0" />
+        <arg name="maximum_lidar_height_thres" default="0.3" />
+        <arg name="minimum_lidar_height_thres" default="-2.2" />
+        <arg name="expand_polygon_size" default="1.0" />
+        <arg name="size_of_expansion_kernel" default="9" />
+
+        <arg name="use_objects_box" default="true" />
+
+        <arg name="use_objects_convex_hull" default="false" />
+        <arg name="use_points" default="false" />
+        <arg name="use_wayarea" default="true" />
+
+        <arg name="objects_input" default="/prediction/motion_predictor/objects" />
+        <arg name="points_input" default="/points_no_ground" />
+
+        <arg name="use_ll2" default="true"/>
+    </include>
+
+</launch>

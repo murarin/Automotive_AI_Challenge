@@ -1,0 +1,65 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(twist_gate3)
+
+find_package(
+  catkin REQUIRED COMPONENTS
+    autoware_build_flags
+    autoware_config_msgs
+    autoware_health_checker
+    autoware_msgs
+    geometry_msgs
+    roscpp
+    rostest
+    rosunit
+    roslint
+    std_msgs
+    tablet_socket_msgs
+    ros_observer
+    tf
+)
+
+catkin_package(
+  INCLUDE_DIRS include
+  CATKIN_DEPENDS
+    autoware_config_msgs
+    autoware_health_checker
+    autoware_msgs
+    geometry_msgs
+    std_msgs
+    tablet_socket_msgs
+    tf
+)
+
+SET(CMAKE_CXX_FLAGS "-O2 -g -Wall ${CMAKE_CXX_FLAGS}")
+set(ROSLINT_CPP_OPTS "--filter=-build/c++11")
+
+roslint_cpp()
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+)
+
+add_executable(twist_gate3 src/twist_gate_node.cpp src/twist_gate.cpp)
+target_link_libraries(twist_gate3 ${catkin_LIBRARIES})
+add_dependencies(twist_gate3 ${catkin_EXPORTED_TARGETS})
+
+install(
+  TARGETS twist_gate3
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+if(CATKIN_ENABLE_TESTING)
+  roslint_add_test()
+  find_package(rostest REQUIRED)
+  add_rostest_gtest(
+    test-twist_gate3
+    test/test_twist_gate.test
+    test/src/test_twist_gate.cpp
+    src/twist_gate.cpp
+  )
+  add_dependencies(test-twist_gate3 ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(test-twist_gate3 ${catkin_LIBRARIES})
+endif()

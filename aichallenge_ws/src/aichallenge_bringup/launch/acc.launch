@@ -1,0 +1,177 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- initial pose publisher -->
+    <node pkg="aichallenge_bringup" type="initial_pose_publisher_acc.py" name="initial_pose_publisher">
+    </node>
+
+
+    <!-- waypoint loader -->
+    <include file="$(find waypoint_maker)/launch/waypoint_loader.launch">
+        <arg name="load_csv" default="true" />
+        <arg name="multi_lane_csv" default="$(find aichallenge_bringup)/data/mydata/waypoint_acc.csv" />
+        <arg name="replanning_mode" default="False" />
+        <arg name="realtime_tuning_mode" default="False" />
+        <arg name="resample_mode" default="False" />
+        <arg name="resample_interval" default="1.0" />
+        <arg name="replan_curve_mode" default="False" />
+        <arg name="overwrite_vmax_mode" default="False" />
+        <arg name="replan_endpoint_mode" default="False" />
+        <arg name="velocity_max" default="100" />
+        <arg name="radius_thresh" default="60" />
+        <arg name="radius_min" default="6" />
+        <arg name="velocity_min" default="6" />
+        <arg name="accel_limit" default="0.5" />
+        <arg name="decel_limit" default="0.3" /> <!-- 0.3 -->
+        <arg name="velocity_offset" default="4" />
+        <arg name="braking_distance" default="5" />
+        <arg name="end_point_offset" default="1" />
+        <arg name="use_decision_maker" default="false" />
+    </include>
+
+
+    <!-- lane rule -->
+    <node pkg="rostopic" type="rostopic" name="arbitrary_name3" args="pub /config/lane_rule autoware_config_msgs/ConfigLaneRule
+        '{ header: auto,
+        acceleration: 1.0,
+        stopline_search_radius: 1.0,
+        number_of_zeros_ahead: 5,
+        number_of_zeros_behind: 5,
+        number_of_smoothing_count: 0 }' " output="screen">
+    </node>
+
+    <include file="$(find lane_planner)/launch/lane_rule_option.launch">
+        <arg name="use_ll2" default="true" />
+    </include>
+
+
+    <!-- lane stop-->
+    <node pkg="rostopic" type="rostopic" name="arbitrary_name4" args="pub /config/lane_stop autoware_config_msgs/ConfigLaneStop
+        '{ header: auto,
+        manual_detection: False }' " output="screen">
+    </node>
+    <node pkg="lane_planner" type="lane_stop" name="lane_stop"/>
+
+
+    <!-- lane select -->
+    <node pkg="rostopic" type="rostopic" name="arbitrary_name5" args="pub /config/lane_select autoware_config_msgs/ConfigLaneSelect
+        '{ header: auto,
+        distance_threshold_neighbor_lanes: 5.0,
+        lane_change_interval: 10.0,
+        lane_change_target_ratio: 5.0,
+        lane_change_target_minimum: 10.0,
+        vector_length_hermite_curve: 10.0 }' " output="screen">
+    </node>
+
+    <include file="$(find lane_planner)/launch/lane_select.launch">
+        <arg name="search_closest_waypoint_minimum_dt" default="5" doc="Minimum number of lookahead waypoints when searching closest_waypoint"/>
+    </include>
+
+
+    <!-- velocity set -->
+    <node pkg="rostopic" type="rostopic" name="arbitrary_name6" args="pub /config/velocity_set autoware_config_msgs/ConfigVelocitySet
+        '{ header: auto,
+        stop_distance_obstacle: 0.1,
+        stop_distance_stopline: 0.0,
+        detection_range: 0.0,
+        threshold_points: 5,
+        detection_height_top: 0.1,
+        detection_height_bottom: -1.5,
+        deceleration_obstacle: 0.4,
+        deceleration_stopline: 0.3,
+        velocity_change_limit: 9.972,
+        deceleration_range: 0.5,
+        temporal_waypoints_size: 100.0 }' " output="screen">
+    </node>
+
+    <include file="$(find waypoint_planner)/launch/velocity_set_option.launch">
+        <arg name="use_crosswalk_detection" default="false" />
+        <arg name="points_topic" default="points_no_ground" />
+        <arg name="velocity_offset" default="1.2" />
+        <arg name="decelerate_vel_min" default="4.0" />
+        <arg name="remove_points_upto" default="2.3" />
+        <arg name="enable_multiple_crosswalk_detection" default="false" />
+        <arg name="stop_distance_obstacle" default="0.1" />
+        <arg name="stop_distance_stopline" default="0.0" />
+        <arg name="detection_range" default="0.0" />
+        <arg name="points_threshold" default="10" />
+        <arg name="detection_height_top" default="0.2" />
+        <arg name="detection_height_bottom" default="-1.7" />
+        <arg name="deceleration_obstacle" default="0.4" />
+        <arg name="deceleration_stopline" default="0.3" />
+        <arg name="velocity_change_limit" default="9.972" />
+        <arg name="deceleration_range" default="0.5" />
+        <arg name="temporal_waypoints_size" default="100" />
+        <arg name="use_ll2" default="true" />
+    </include>
+    <!-- <include file="$(find waypoint_planner)/launch/velocity_set_option.launch">
+        <arg name="use_ll2" default="true" />
+    </include> -->
+
+
+    <!-- astar avoid -->
+    <!-- <include file="$(find waypoint_planner)/launch/astar_avoid.launch"> -->
+        <!-- Relay behavior configurations -->
+        <!-- <arg name="safety_waypoints_size" default="100" />
+        <arg name="update_rate" default="10" /> -->
+
+        <!-- Avoidance behavior configurations -->
+        <!-- <arg name="costmap_topic" default="semantics/costmap_generator/occupancy_grid" />
+        <arg name="enable_avoidance" default="true" />
+        <arg name="avoid_waypoints_velocity" default="10.0" />
+        <arg name="avoid_start_velocity" default="3.0" />
+        <arg name="replan_interval" default="2.0" />
+        <arg name="search_waypoints_size" default="50" />
+        <arg name="search_waypoints_delta" default="2" />
+        <arg name="closest_search_size" default="30" /> -->
+
+        <!-- A* search configurations -->
+        <!-- <arg name="use_back" default="false" />
+        <arg name="use_potential_heuristic" default="true" />
+        <arg name="use_wavefront_heuristic" default="false" />
+        <arg name="time_limit" default="1000.0" />
+        <arg name="robot_length" default="4.5" />
+        <arg name="robot_width" default="1.75" />
+        <arg name="robot_base2back" default="1.0" />
+        <arg name="minimum_turning_radius" default="6.0" />
+        <arg name="theta_size" default="48" />
+        <arg name="curve_weight" default="1.2" />
+        <arg name="reverse_weight" default="2.00" />
+        <arg name="lateral_goal_range" default="0.5" />
+        <arg name="longitudinal_goal_range" default="2.0" />
+        <arg name="angle_goal_range" default="6.0" />
+        <arg name="obstacle_threshold" default="100" />
+        <arg name="potential_weight" default="10.0" />
+        <arg name="distance_heuristic_weight" default="1.0" />
+    </include> -->
+    <include file="$(find waypoint_planner)/launch/astar_avoid.launch"/>
+
+
+    <!-- pure pursuit -->
+    <include file="$(find pure_pursuit)/launch/pure_pursuit.launch">
+        <arg name="is_linear_interpolation" default="true"/>
+        <arg name="publishes_for_steering_robot" default="true"/>
+        <arg name="add_virtual_end_waypoints" default="false"/>
+        <arg name="const_lookahead_distance" default="2.0"/>
+        <arg name="const_velocity" default="5.0"/>
+        <arg name="lookahead_ratio" default="1.0"/>
+        <arg name="minimum_lookahead_distance" default="3.0"/>
+
+        <!-- 0 = waypoints, 1 = provided constant velocity -->
+        <arg name="velocity_source" default="0"/>
+    </include>
+
+    <!-- twist filter -->
+    <include file="$(find twist_filter2)/launch/twist_filter2.launch">
+        <arg name="loop_rate" default="30.0" />
+        <arg name="use_decision_maker" default="false" />
+        <arg name="lateral_accel_limit" default="5.0" />
+        <arg name="lowpass_gain_linear_x" default="0.0" />
+        <arg name="lowpass_gain_angular_z" default="0.0" />
+        <arg name="scenario" default="0" /> <!-- acc: 0  traffic light: 1 -->
+    </include>
+
+    <!-- <node pkg="rostopic" type="rostopic" name="arbitrary_name7" args="pub -r 10 /vehicle_cmd autoware_msgs/VehicleCmd '{twist_cmd:{twist:{linear:{x: 10.0}, angular: {z: 0.0}}}, ctrl_cmd:{linear_acceleration: 10.0, steering_angle: 0}}'"/> -->
+    <!-- <node pkg="rostopic" type="rostopic" name="arbitrary_name7" args="pub -r 10 /vehicle_cmd autoware_msgs/VehicleCmd '{twist_cmd:{twist:{linear:{x: 10.0}, angular: {z: 0.0}}}}'"/> -->
+
+
+</launch>
